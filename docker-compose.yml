@@ -41,10 +41,3 @@ services:
       - ./airflow/dags:/usr/local/airflow/dags
     ports:
       - "8080:8080"
-
-#  streamlit:
-#    build: ./streamlit_app
-#    ports:
-#      - "8501:8501"
-#    depends_on:
-#      - postgres
