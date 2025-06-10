@@ -8,14 +8,6 @@ load_dotenv()
 FRED_API_KEY=os.getenv('FRED_KEY')
 FRED_ENDPOINT=os.getenv('FRED_ENDPOINT')
 
-DB_USER=os.getenv('DB_USER')
-DB_PWD=os.getenv('DB_PASS')
-DB_NAME=os.getenv('DB_NAME')
-DB_HOST=os.getenv('DB_HOST')
-DB_PORT=os.getenv('DB_PORT')
-
-print(DB_PWD)
-
 observation_start=date.today()-timedelta(weeks=10*52) #Last 20 years
 observation_end=date.today()
 
@@ -48,15 +40,24 @@ def load_to_sql(series_id):
     try:
         with psycopg2.connect(**db_params) as conn:
             cursor=conn.cursor()
+            
+            cursor.execute('TRUNCATE bronze_fred_raw')
+
             insert_query="""
             INSERT INTO bronze_fred_raw (series_id,response)
             VALUES (%s,%s)
             """
-            response=fetch_fred_data(series_id)
-            if len(response)!=0:
-                cursor.execute(insert_query,(series_id,json.dumps(response)))
+            
+            for series_id in series_list:
+                response=fetch_fred_data(series_id)
+                if len(response)!=0:
+                    cursor.execute(insert_query,(series_id,json.dumps(response)))
+                    conn.commit()
             cursor.close()
+
     except Exception as e:
         print(f"Error occured:{e}")    
 
-load_to_sql('SP500')
+if __name__=='__main__':
+        series_list=['SP500','USREC','UNRATE','CPIAUCSL','PAYEMS','GDPC1','M2SL','INDPRO','FEDFUNDS','T10Y2Y','HOUST','UMCSENT','BAA10Y']
+        load_to_sql(series_list)
