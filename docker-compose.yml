@@ -22,9 +22,9 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: "pass@admin"
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: test-user
+      POSTGRES_PASSWORD: pass123
+      POSTGRES_DB: macro-datalake
     ports:
       - "5432:5432"
     volumes:
