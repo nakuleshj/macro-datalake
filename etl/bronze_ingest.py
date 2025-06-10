@@ -29,7 +29,7 @@ def fetch_fred_data(series_id):
         print(f'Error: {e}')
         return {}
 
-def load_to_sql(series_id):
+def load_to_bronze(series_id):
     db_params={
         'dbname': 'macro-datalake',
         'user': 'test-user',
@@ -60,4 +60,4 @@ def load_to_sql(series_id):
 
 if __name__=='__main__':
         series_list=['SP500','USREC','UNRATE','CPIAUCSL','PAYEMS','GDPC1','M2SL','INDPRO','FEDFUNDS','T10Y2Y','HOUST','UMCSENT','BAA10Y']
-        load_to_sql(series_list)
+        load_to_bronze(series_list)
