@@ -1,5 +1,5 @@
-CREATE TABLE bronze_fred_raw IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS bronze_fred_raw (
     series_id TEXT,
     response JSONB,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-)
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
