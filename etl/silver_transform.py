@@ -18,17 +18,20 @@ def extract_from_bronze():
             raw_data=pd.read_sql("SELECT * from bronze_fred_raw;",conn)
             return raw_data
 
-def convert(series):
-     for s in series:
-          print(s)
-          print(float(s))
+def load_to_silver(transformed_data: pd.DataFrame):
+    try:
+        engine=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro-datalake")
+        with engine.connect() as conn:
+            transformed_data.to_sql('silver_fred_cleaned',conn,if_exists='replace')
+
+    except Exception as e:
+        print(f"Error occured:{e}")   
 
 def transform(raw_data):
     transformed_data=pd.DataFrame()
     row_cnt=0
     for i, row in raw_data.iterrows():
-        response=row['response']
-        obs=pd.DataFrame(response['observations'])
+        obs=pd.DataFrame(row['response']['observations'])
         obs.drop(['realtime_end','realtime_start'],axis=1,inplace=True)
           
         obs['series_id']=row['series_id']
@@ -38,7 +41,7 @@ def transform(raw_data):
         obs['frequency']=pd.infer_freq(obs['date'])
 
         obs.loc[obs['value']==".",'value']=nan          
-        obs['value']=obs['value'].astype(float)
+        obs['value']=obs['value'].astype(float).round(2)
         obs['value']=obs['value'].interpolate()
         
         row_cnt+=obs.shape[0]
@@ -50,4 +53,4 @@ def transform(raw_data):
 if __name__=="__main__":
     raw_data=extract_from_bronze()
     transformed_data=transform(raw_data)
-    print(transformed_data.head())
+    load_to_silver(transformed_data)
