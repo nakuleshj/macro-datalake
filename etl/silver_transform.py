@@ -13,14 +13,14 @@ def load_to_silver(transformed_data: pd.DataFrame):
     try:
         engine=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro-datalake")
         with engine.connect() as conn:
-            transformed_data.to_sql('silver_fred_cleaned',conn,if_exists='replace')
+            transformed_data.to_sql('silver_fred_cleaned',conn,if_exists='replace',index=False)
 
     except Exception as e:
         print(f"Error occured:{e}")   
 
 def transform(raw_data):
     transformed_data=pd.DataFrame()
-    row_cnt=0
+
     for i, row in raw_data.iterrows():
         obs=pd.DataFrame(row['response']['observations'])
         
@@ -38,7 +38,7 @@ def transform(raw_data):
 
         transformed_data=pd.concat([transformed_data,obs],axis=0)
         
-        return transformed_data
+    return transformed_data
 
 if __name__=="__main__":
     raw_data=extract_from_bronze()
