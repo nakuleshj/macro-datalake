@@ -29,7 +29,7 @@ def fetch_fred_data(series_id):
         print(f'Error: {e}')
         return {}
 
-def load_to_bronze(series_id):
+def load_to_bronze(series_list):
     db_params={
         'dbname': 'macro-datalake',
         'user': 'test-user',
@@ -52,12 +52,13 @@ def load_to_bronze(series_id):
                 response=fetch_fred_data(series_id)
                 if len(response)!=0:
                     cursor.execute(insert_query,(series_id,json.dumps(response)))
-                    conn.commit()
+                    
+            conn.commit()
             cursor.close()
 
     except Exception as e:
         print(f"Error occured:{e}")    
 
 if __name__=='__main__':
-        series_list=['SP500','USREC','UNRATE','CPIAUCSL','PAYEMS','GDPC1','M2SL','INDPRO','FEDFUNDS','T10Y2Y','HOUST','UMCSENT','BAA10Y']
+        series_list=['USREC','SP500','UNRATE','CPIAUCSL','PAYEMS','GDPC1','M2SL','INDPRO','FEDFUNDS','T10Y2Y','HOUST','UMCSENT','BAA10Y']
         load_to_bronze(series_list)
