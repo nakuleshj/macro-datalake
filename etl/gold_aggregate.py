@@ -8,21 +8,16 @@ def extract_from_silver():
             return cleaned_data
 
 def engineer_macro_features():
-    cleaned_data=extract_from_silver()
-    
-    cleaned_data.set_index('date',inplace=True)
-    cleaned_data['yoy_growth']=cleaned_data.groupby('series_id')['value'].pct_change(periods=12)*100
-    cleaned_data['yoy_growth']=round(cleaned_data['yoy_growth'],2)
-    select_USREC=cleaned_data['series_id']=='USREC'
-    USREC_data=cleaned_data.loc[select_USREC,'value']
-    cleaned_data['recession_flag']=USREC_data
-    cleaned_data['recession_flag'].interpolate(inplace=True)
 
-    
+    pivoted_data=extract_from_silver().pivot(
+         columns='series_id',
+         values='value',
+         index='date'
+    )
 
-    print(cleaned_data.columns)
-    
-    print(cleaned_data.tail())
+    pivoted_data=pivoted_data.ffill().bfill()
+    pivoted_data=pivoted_data.resample('ME').mean()
+    print(round(pivoted_data.pct_change()*1000,2).drop(columns='USREC'))
 
 
 if __name__=='__main__':
