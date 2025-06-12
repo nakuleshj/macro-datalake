@@ -8,7 +8,7 @@ load_dotenv()
 FRED_API_KEY=os.getenv('FRED_KEY')
 FRED_ENDPOINT=os.getenv('FRED_ENDPOINT')
 
-observation_start=date.today()-timedelta(weeks=10*52) #Last 20 years
+observation_start=date.today()-timedelta(weeks=20*52) #Last 20 years
 observation_end=date.today()
 
 def fetch_fred_data(series_id):
