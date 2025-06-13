@@ -1,14 +1,15 @@
 import requests, os, json
-from datetime import date,timedelta
-import psycopg2
+from datetime import date,timedelta,datetime
 from dotenv import load_dotenv
+from minio import Minio
+from minio import S3Error
 
 load_dotenv()
 
 FRED_API_KEY=os.getenv('FRED_KEY')
 FRED_ENDPOINT=os.getenv('FRED_ENDPOINT')
 
-observation_start=date.today()-timedelta(weeks=20*52) #Last 20 years
+observation_start=date.today()-timedelta(weeks=10*52) #Last 20 years
 observation_end=date.today()
 
 def fetch_fred_data(series_id):
@@ -19,45 +20,50 @@ def fetch_fred_data(series_id):
         'observation_start':observation_start,
         'observation_end':observation_end
     }
-    try:
-        response=requests.get(
+    response=requests.get(
             FRED_ENDPOINT,
             params=params
         )
-        return response.json()
-    except Exception as e:
-        print(f'Error: {e}')
-        return {}
+    response.raise_for_status()
+    return response.json()
+    
+MINIO_CLIENT = Minio(
+    endpoint='localhost:9000',
+    access_key='minioadmin',
+    secret_key='admin123',
+    secure=False,
+)
+BUCKET = 'bronze'
+if not MINIO_CLIENT.bucket_exists(BUCKET):
+    MINIO_CLIENT.make_bucket(BUCKET)
+
+def upload_to_minio(series_id,data):
+    today = datetime.now().strftime("%Y-%m-%d")
+    filename = f'{series_id}_{today}.json'
+    object_path= f'{series_id}/{filename}'
+
+    with open(filename,"w") as f:
+        json.dump(data,f)
+    
+    try:
+        MINIO_CLIENT.fput_object(
+            bucket_name=BUCKET,
+            object_name=object_path,
+            file_path=filename,
+            content_type='application/json'
+        )
+        print(f"Uploaded {object_path} to bucket '{BUCKET}'")
+    except S3Error as e:
+        print(f"Upload error: {e}")
+    finally:
+        os.remove(filename)
+
 
 def load_to_bronze(series_list):
-    db_params={
-        'dbname': 'macro-datalake',
-        'user': 'test-user',
-        'password':'pass123',
-        'host': 'localhost',
-        'port': 5432
-    }
-    try:
-        with psycopg2.connect(**db_params) as conn:
-            cursor=conn.cursor()
-            
-            cursor.execute('TRUNCATE bronze_fred_raw')
-
-            insert_query="""
-            INSERT INTO bronze_fred_raw (series_id,response)
-            VALUES (%s,%s)
-            """
-            
-            for series_id in series_list:
-                response=fetch_fred_data(series_id)
-                if len(response)!=0:
-                    cursor.execute(insert_query,(series_id,json.dumps(response)))
-                    
-            conn.commit()
-            cursor.close()
-
-    except Exception as e:
-        print(f"Error occured:{e}")    
+    for series_id in series_list:
+        response=fetch_fred_data(series_id)
+        if len(response)!=0:
+            upload_to_minio(series_id=series_id,data=response)
 
 if __name__=='__main__':
         series_list=['USREC','SP500','UNRATE','CPIAUCSL','PAYEMS','GDPC1','M2SL','INDPRO','FEDFUNDS','T10Y2Y','HOUST','UMCSENT','BAA10Y']

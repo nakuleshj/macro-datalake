@@ -1,43 +1,32 @@
 version: '3.8'
 
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-
-  kafka:
-    image: confluentinc/cp-kafka:7.4.0
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-
   postgres:
     image: postgres:15
+    container_name: macrolake-postgres
     environment:
       POSTGRES_USER: test-user
       POSTGRES_PASSWORD: pass123
-      POSTGRES_DB: macro-datalake
+      POSTGRES_DB: macro_datalake
     ports:
       - "5432:5432"
     volumes:
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  airflow:
-    image: puckel/docker-airflow:1.10.9
-    restart: always
-    depends_on:
-      - postgres
+  minio:
+    image: minio/minio
+    container_name: macrolake-minio
     environment:
-      - LOAD_EX=n
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: admin123
+    command: server /data --console-address ":9001"
     volumes:
-      - ./airflow/dags:/usr/local/airflow/dags
+      - ./minio-data:/data
     ports:
-      - "8080:8080"
+      - "9000:9000"
+      - "9001:9001"
+
+
+volumes:
+  postgres_data:
+  minio_data:
