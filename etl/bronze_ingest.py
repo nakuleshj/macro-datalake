@@ -34,13 +34,15 @@ MINIO_CLIENT = Minio(
     secure=False,
 )
 BUCKET = 'bronze'
+
+
 if not MINIO_CLIENT.bucket_exists(BUCKET):
     MINIO_CLIENT.make_bucket(BUCKET)
 
 def upload_to_minio(series_id,data):
     today = datetime.now().strftime("%Y-%m-%d")
-    filename = f'{series_id}_{today}.json'
-    object_path= f'{series_id}/{filename}'
+    filename = f'{series_id}.json'
+    object_path= f'{today}/{filename}'
 
     with open(filename,"w") as f:
         json.dump(data,f)
