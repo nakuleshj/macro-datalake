@@ -23,7 +23,6 @@ def extract_from_bronze():
         response = minio_client.get_object(bucket_name, obj.object_name)
         json_data = json.loads(response.read().decode("utf-8"))
         json_data['series_id']=obj.object_name.split('/')[1].split('.')[0]
-        print(json_data['series_id'])
         raw_data.append(json_data)
     raw_data_df=pd.DataFrame(raw_data)
     return raw_data_df

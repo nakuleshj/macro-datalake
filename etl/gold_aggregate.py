@@ -6,7 +6,9 @@ DB_ENGINE=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro
 
 
 def extract_from_silver():
-    cleaned_data=pd.read_sql("SELECT * from silver_fred_cleaned;",DB_ENGINE)
+    t_name='silver_fred_cleaned'
+    print(f'Extracting cleaned data: {t_name} table')
+    cleaned_data=pd.read_sql(f"SELECT * from {t_name};",DB_ENGINE)
     return cleaned_data
 
 def engineer_macro_features(cleaned_data_silver):
