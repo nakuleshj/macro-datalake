@@ -67,6 +67,9 @@ def load_to_bronze(series_list):
         if len(response)!=0:
             upload_to_minio(series_id=series_id,data=response)
 
+def bronze_el():
+    series_list=['USREC','SP500','UNRATE','CPIAUCSL','PAYEMS','GDPC1','M2SL','INDPRO','FEDFUNDS','T10Y2Y','HOUST','UMCSENT','BAA10Y']
+    load_to_bronze(series_list)
+
 if __name__=='__main__':
-        series_list=['USREC','SP500','UNRATE','CPIAUCSL','PAYEMS','GDPC1','M2SL','INDPRO','FEDFUNDS','T10Y2Y','HOUST','UMCSENT','BAA10Y']
-        load_to_bronze(series_list)
+    bronze_el()    
