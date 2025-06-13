@@ -1,28 +1,48 @@
 import pandas as pd
-import datetime as dt
-from sqlalchemy import create_engine
+from datetime import datetime
+from sqlalchemy import create_engine,text
 from numpy import nan
+from minio import Minio, S3Error
+import json
 
 def extract_from_bronze():
-    engine=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro-datalake")
-    with engine.connect() as conn:
-            raw_data=pd.read_sql("SELECT * from bronze_fred_raw;",conn)
-            return raw_data
+    today = datetime.now().strftime("%Y-%m-%d")
+    minio_client=Minio(
+        endpoint='localhost:9000',
+        access_key='minioadmin',
+        secret_key='admin123',
+        secure=False,
+    )
+    bucket_name='bronze'
+    objects = minio_client.list_objects(bucket_name, recursive=True)
+
+    raw_data=[]
+
+    for obj in objects:
+        print(f'Reading object:{obj.object_name}')
+        response = minio_client.get_object(bucket_name, obj.object_name)
+        json_data = json.loads(response.read().decode("utf-8"))
+        json_data['series_id']=obj.object_name.split('/')[1].split('.')[0]
+        print(json_data['series_id'])
+        raw_data.append(json_data)
+    raw_data_df=pd.DataFrame(raw_data)
+    return raw_data_df
+        
 
 def load_to_silver(transformed_data: pd.DataFrame):
     try:
-        engine=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro-datalake")
+        engine=create_engine("postgresql+psycopg2://test-user:pass123@localhost:5432/macro_datalake")
         with engine.connect() as conn:
             transformed_data.to_sql('silver_fred_cleaned',conn,if_exists='replace',index=False)
 
     except Exception as e:
-        print(f"Error occured:{e}")   
+        print(f"Error occured:{e}")  
 
-def transform(raw_data):
+def transform(raw_data: pd.DataFrame):
     transformed_data=pd.DataFrame()
 
     for i, row in raw_data.iterrows():
-        obs=pd.DataFrame(row['response']['observations'])
+        obs=pd.DataFrame(row['observations'])
         
         obs.drop(['realtime_end','realtime_start'],axis=1,inplace=True)
           
@@ -40,7 +60,10 @@ def transform(raw_data):
         
     return transformed_data
 
-if __name__=="__main__":
+def silver_etl():
     raw_data=extract_from_bronze()
     transformed_data=transform(raw_data)
     load_to_silver(transformed_data)
+
+if __name__=="__main__":
+    silver_etl()
