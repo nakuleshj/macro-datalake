@@ -11,7 +11,7 @@ def extract_from_silver():
     cleaned_data=pd.read_sql(f"SELECT * from {t_name};",DB_ENGINE)
     return cleaned_data
 
-def engineer_macro_features(cleaned_data_silver):
+def pivot_table(cleaned_data_silver):
 
     pivoted_data=cleaned_data_silver.pivot_table(
          columns='series_id',
@@ -23,18 +23,7 @@ def engineer_macro_features(cleaned_data_silver):
     
     pivoted_data.dropna(inplace=True)
 
-    pct_change_df=pivoted_data.pct_change(periods=1)*100
-
-    rolling_90d_df=pivoted_data.rolling(window=90).mean()
-    rolling_90d_df.drop(columns='DTWEXBGS',inplace=True)
-
-    rolling_180d_df=pivoted_data.rolling(window=180).mean()
-    rolling_180d_df.drop(columns='DTWEXBGS',inplace=True)
-    
-    merged_data=pivoted_data.merge(pct_change_df,how='left',on='date',suffixes=("","_growth"))
-    merged_data=merged_data.merge(rolling_90d_df,how='left',on='date',suffixes=("","_3ma"))
-    merged_data=round(merged_data.merge(rolling_180d_df,how='left',on='date',suffixes=("","_6ma")),2)
-    return merged_data
+    return pivoted_data
      
 
 def load_gold_table(data):
