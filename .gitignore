@@ -1,3 +1,5 @@
 .env
 
 minio-data/
+
+etl/models/
