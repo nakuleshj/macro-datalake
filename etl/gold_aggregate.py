@@ -37,7 +37,7 @@ def load_gold_table(data):
 
 def gold_etl():
     cleaned_data_silver=extract_from_silver()
-    wide_table=engineer_macro_features(cleaned_data_silver)
+    wide_table=pivot_table(cleaned_data_silver)
     load_gold_table(wide_table)
 
 if __name__=='__main__':
