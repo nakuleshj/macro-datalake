@@ -13,10 +13,11 @@ def extract_from_silver():
 
 def engineer_macro_features(cleaned_data_silver):
 
-    pivoted_data=cleaned_data_silver.pivot(
+    pivoted_data=cleaned_data_silver.pivot_table(
          columns='series_id',
          values='value',
-         index='date'
+         index='date',
+         aggfunc='mean'
     )
     pivoted_data=pivoted_data.resample('D').ffill().bfill()
     pivoted_data=pivoted_data.resample('ME').mean()
