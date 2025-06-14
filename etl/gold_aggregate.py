@@ -23,19 +23,19 @@ def engineer_macro_features(cleaned_data_silver):
     pivoted_data=pivoted_data.resample('ME').mean()
     
     pivoted_data.dropna(inplace=True)
-    pivoted_data['USREC']=pivoted_data['USREC'].astype(int)
+    pivoted_data['DTWEXBGS']=pivoted_data['DTWEXBGS'].astype(int)
     pct_change_df=pivoted_data.pct_change(periods=12)*1000
-    pct_change_df.drop(columns='USREC',inplace=True)
+    pct_change_df.drop(columns='DTWEXBGS',inplace=True)
 
-    rolling_3ma_df=pivoted_data.rolling(window=3).mean()
-    rolling_3ma_df.drop(columns='USREC',inplace=True)
+    #rolling_3ma_df=pivoted_data.rolling(window=3).mean()
+    #rolling_3ma_df.drop(columns='DTWEXBGS',inplace=True)
 
-    rolling_6ma_df=pivoted_data.rolling(window=6).mean()
-    rolling_6ma_df.drop(columns='USREC',inplace=True)
+    #rolling_6ma_df=pivoted_data.rolling(window=6).mean()
+    #rolling_6ma_df.drop(columns='DTWEXBGS',inplace=True)
     
     merged_data=pivoted_data.merge(pct_change_df,how='left',on='date',suffixes=("","_yoy_growth"))
-    merged_data=merged_data.merge(rolling_3ma_df,how='left',on='date',suffixes=("","_3ma"))
-    merged_data=round(merged_data.merge(rolling_3ma_df,how='left',on='date',suffixes=("","_6ma")),2)
+    #merged_data=merged_data.merge(rolling_3ma_df,how='left',on='date',suffixes=("","_3ma"))
+    #merged_data=round(merged_data.merge(rolling_3ma_df,how='left',on='date',suffixes=("","_6ma")),2)
     return merged_data
      
 
