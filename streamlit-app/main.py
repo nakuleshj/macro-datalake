@@ -18,38 +18,47 @@ def load_data():
 
 df = load_data()
 
-st.title("MacroLake Exploratory Data Analysis (EDA)")
+st.title("MacroLake ")
+tab1, tab2 = st.tabs(["Exploratory Data Analysis (EDA)", "Indicator Time-Series Analysis"])
 
-st.subheader("Snapshot of Data:")
-st.dataframe(df.head(10),use_container_width=True)
+with tab1:
+    st.subheader("Snapshot of Data:")
+    st.dataframe(df.head(10),use_container_width=True)
 
-st.subheader("Data Summary")
-st.write(f"Total rows: {len(df)}")
-st.write(f"Unique indicators: {df.columns.nunique()}")
-st.write(f"Date range: {df.index.min().date()} → {df.index.max().date()}")
+    st.write(f"Total rows: {df.shape[0]}")
+    st.write(f"Unique indicators: {df.columns.nunique()}")
+    st.write(f"Date range: {df.index.min().date()} → {df.index.max().date()}")
 
-st.subheader("Trend")
-dist_series = st.selectbox("Select indicator for histogram", df.columns)
-dist_data = df[dist_series]
-fig_hist = px.line(dist_data, x=df.index, y=dist_data )
-st.plotly_chart(fig_hist, use_container_width=True)
+    
+    st.subheader("Key Statistics")
+    st.dataframe(df.describe().round(2))
+    
+    
+    st.subheader("Trend")
+    dist_series = st.selectbox("Select indicator for histogram", df.columns)
+    dist_data = df[dist_series]
+    fig_hist = px.line(dist_data, x=df.index, y=dist_data )
+    st.plotly_chart(fig_hist, use_container_width=True)
 
-st.subheader("Value Distribution")
+    st.subheader("Value Distribution")
 
-fig_hist = px.histogram(dist_data, x=dist_data, nbins=30, title=f"{dist_series} Distribution")
-st.plotly_chart(fig_hist, use_container_width=True)
-
-
-st.subheader("Boxplot for Outlier Detection")
-fig_box = px.box(dist_data, y=dist_data, title=f"{dist_series} Boxplot")
-st.plotly_chart(fig_box, use_container_width=True)
+    fig_hist = px.histogram(dist_data, x=dist_data, nbins=30, title=f"{dist_series} Distribution")
+    st.plotly_chart(fig_hist, use_container_width=True)
 
 
-st.subheader("Correlation Heatmap")
+    st.subheader("Boxplot for Outlier Detection")
+    fig_box = px.box(dist_data, y=dist_data, title=f"{dist_series} Boxplot")
+    st.plotly_chart(fig_box, use_container_width=True)
 
-corr_cols=st.multiselect("Select Indicators:",options=df.columns,default=df.columns[0:2])
 
-corr=df[corr_cols].corr().round(2)
-fig=px.imshow(corr, text_auto=True, color_continuous_scale='rdylgn', title="Correlation Matrix")
+    st.subheader("Correlation Heatmap")
 
-st.plotly_chart(fig)
+    corr_cols=st.multiselect("Select Indicators:",options=df.columns,default=df.columns[0:2])
+
+    corr=df[corr_cols].corr().round(2)
+    fig=px.imshow(corr, text_auto=True, color_continuous_scale='rdylgn', title="Correlation Matrix")
+
+    st.plotly_chart(fig)
+
+with tab2:
+    print('lol')
