@@ -3,10 +3,11 @@ import pandas as pd
 import plotly.express as px
 from sqlalchemy import create_engine
 import os
+from prophet.serialize import model_from_json
 
 DB_ENGINE=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro_datalake")
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide",page_title='MacroLake Dashboard')
 
 @st.cache_data(ttl=600)
 def load_data():
@@ -19,7 +20,7 @@ def load_data():
 df = load_data()
 
 st.title("MacroLake ")
-tab1, tab2 = st.tabs(["Exploratory Data Analysis (EDA)", "Indicator Time-Series Analysis"])
+tab1, tab2, tab3 = st.tabs(["Exploratory Data Analysis (EDA)","Time Series Analysis: SP500", "Prophet-Based S&P 500 Prediction"])
 
 with tab1:
     st.subheader("Snapshot of Data:")
@@ -61,4 +62,16 @@ with tab1:
     st.plotly_chart(fig)
 
 with tab2:
-    print('lol')
+    print('')
+
+with tab3:
+    fcst_period=st.number_input('Enter forecast period (months)',min_value=1,value=3,max_value=12)
+    fin= open('../ml/models/SP500_forecast_model.json', 'r')
+    m = model_from_json(fin.read())     
+    fcst_df=m.make_future_dataframe(periods=fcst_period*30,freq='D',include_history=False)    
+    fcsts=m.predict(fcst_df)
+    plot_df=pd.concat([df['SP500'],fcsts.set_index('ds')['yhat']],axis=1)
+    plot_df.columns=['Actual','Forecasted']
+    st.dataframe(plot_df)
+
+    st.line_chart(plot_df,color=['#000000','#ff0000'])
