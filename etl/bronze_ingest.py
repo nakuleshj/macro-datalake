@@ -17,8 +17,7 @@ def fetch_fred_data(series_id):
         'api_key':FRED_API_KEY,
         'file_type':'json',
         'series_id':series_id,
-        'observation_start':observation_start,
-        'observation_end':observation_end
+        'observation_start':observation_start
     }
     response=requests.get(
             FRED_ENDPOINT,
