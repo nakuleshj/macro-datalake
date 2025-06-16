@@ -3,6 +3,7 @@ from datetime import date,timedelta,datetime
 from dotenv import load_dotenv
 from minio import Minio
 from minio import S3Error
+from airflow import DAG
 
 load_dotenv()
 
