@@ -1,9 +1,0 @@
-project:
-    name: macro-datalake
-
-postgres:
-  port: 5433 
-
-networks:
-  shared-net:
-    external: true

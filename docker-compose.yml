@@ -43,7 +43,8 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-
+  airflow:
+    image: imageName
 
 volumes:
   postgres_data:
