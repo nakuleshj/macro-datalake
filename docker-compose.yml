@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: test-user
       POSTGRES_PASSWORD: pass123
       POSTGRES_DB: macro_datalake
+    networks:
+      - shared-net
     ports:
       - "5432:5432"
     volumes:
@@ -36,6 +38,8 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - ./minio-data:/data
+    networks:
+      - shared-net
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -45,3 +49,7 @@ volumes:
   postgres_data:
   minio_data:
   pgadmin_data:
+
+networks:
+  shared-net:
+    external: true

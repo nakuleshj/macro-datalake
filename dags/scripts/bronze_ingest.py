@@ -27,7 +27,7 @@ def fetch_fred_data(series_id):
     return response.json()
     
 MINIO_CLIENT = Minio(
-    endpoint='localhost:9000',
+    endpoint='minio:9000',
     access_key='minioadmin',
     secret_key='admin123',
     secure=False,
