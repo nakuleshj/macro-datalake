@@ -4,8 +4,11 @@ from dotenv import load_dotenv
 from minio import Minio
 from minio import S3Error
 from airflow import DAG
+from airflow.operators.python import PythonOperator
+
 
 load_dotenv()
+
 
 FRED_API_KEY=os.getenv('FRED_KEY')
 FRED_ENDPOINT=os.getenv('FRED_ENDPOINT')
@@ -73,3 +76,14 @@ def bronze_el():
 
 if __name__=='__main__':
     bronze_el()    
+
+with DAG(
+    dag_id="bronze_ingest",
+    start_date=datetime(2024, 1, 1),
+    schedule_interval="@daily",
+    catchup=False,
+) as dag:
+    task = PythonOperator(
+        task_id="bronze_el",
+        python_callable=bronze_el,
+    )
