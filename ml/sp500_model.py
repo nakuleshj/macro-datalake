@@ -6,6 +6,9 @@ import os
 from datetime import datetime,timedelta
 from pandas.tseries.holiday import USFederalHolidayCalendar as holidays
 from prophet.serialize import model_to_json
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+
 
 DB_ENGINE=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro_datalake")
 MODEL_DIR = os.getenv("MODEL_DIR", "models/")
@@ -55,3 +58,14 @@ def te_model():
 
 if __name__=='__main__':
     te_model()
+
+with DAG(
+    dag_id="bronze_ingest",
+    start_date=datetime(2024, 1, 1, 9),
+    schedule_interval="@daily",
+    catchup=False,
+) as dag:
+    task = PythonOperator(
+        task_id="train_model",
+        python_callable=te_model(),
+    )

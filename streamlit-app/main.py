@@ -3,14 +3,16 @@ import pandas as pd
 import plotly.express as px
 from sqlalchemy import create_engine
 import os
-from datetime import date,timedelta
+from datetime import datetime,timedelta
+from prophet import Prophet
 from prophet.plot import plot_components_plotly
 from prophet.serialize import model_from_json
 import plotly.graph_objects as go
 from sklearn.metrics import mean_absolute_percentage_error
+from pandas.tseries.holiday import USFederalHolidayCalendar as holidays
 
 
-DB_ENGINE=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro_datalake")
+DB_ENGINE=create_engine("postgresql+psycopg2://test-user:pass123@macrolake-postgres:5432/macro_datalake")
 
 st.set_page_config(layout="wide",page_title='MacroLake Dashboard')
 
@@ -21,6 +23,29 @@ def load_data():
     df['date'] = pd.to_datetime(df['date'])
     df.set_index('date',inplace=True)
     return df
+
+def train_model(SP500_data):
+    split_date= datetime.today()- timedelta(weeks=13)
+    split_date.date()
+    SP500_train= SP500_data.loc[SP500_data.index <= split_date]
+
+    SP500_train_prophet=SP500_train.reset_index()
+    SP500_train_prophet.columns=['ds','y']
+    SP500_train_prophet.head()
+    hol=holidays()
+
+    hds=hol.holidays(
+    start=SP500_data.index.min(),
+    end=SP500_data.index.max(),
+    return_name=True
+    )
+    hds_df=pd.DataFrame(hds,columns=['holiday'])
+    hds_df=hds_df.reset_index().rename(columns={'index':'ds'})
+    
+    forecast_model=Prophet(holidays=hds_df)
+    forecast_model.fit(SP500_train_prophet)
+
+    return forecast_model
 
 df = load_data()
 
@@ -65,8 +90,7 @@ with tab1:
     help="Select how far into the future you want to forecast the S&P 500 index."
     )
 
-    fin=open('../ml/models/SP500_forecast_model.json','r')
-    m = model_from_json(fin.read())     
+    m = train_model(df["SP500"])
     fcst_df=m.make_future_dataframe(periods=fcst_period,freq='D',include_history=False)
 
 
