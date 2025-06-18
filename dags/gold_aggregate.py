@@ -1,8 +1,11 @@
 from sqlalchemy import create_engine
 import pandas as pd
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from datetime import datetime
 
 
-DB_ENGINE=create_engine("postgresql+psycopg2://test-user:pass123@localhost/macro_datalake")
+DB_ENGINE=create_engine("postgresql+psycopg2://test-user:pass123@macrolake-postgres:5432/macro_datalake")
 
 
 def extract_from_silver():
@@ -42,3 +45,15 @@ def gold_etl():
 
 if __name__=='__main__':
     gold_etl()
+
+with DAG(
+    dag_id="gold_aggregate",
+    start_date=datetime(2024, 1, 1),
+    schedule_interval=None,
+    catchup=False,
+) as dag:
+    task = PythonOperator(
+        task_id="gold_etl",
+        python_callable=gold_etl,
+    )
+    
