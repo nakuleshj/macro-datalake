@@ -4,11 +4,14 @@ from sqlalchemy import create_engine,text
 from numpy import nan
 from minio import Minio, S3Error
 import json
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 def extract_from_bronze():
     today = datetime.now().strftime("%Y-%m-%d")
     minio_client=Minio(
-        endpoint='localhost:9000',
+        endpoint='minio:9000',
         access_key='minioadmin',
         secret_key='admin123',
         secure=False,
@@ -30,7 +33,7 @@ def extract_from_bronze():
 
 def load_to_silver(transformed_data: pd.DataFrame):
     try:
-        engine=create_engine("postgresql+psycopg2://test-user:pass123@localhost:5432/macro_datalake")
+        engine=create_engine("postgresql+psycopg2://test-user:pass123@macrolake-postgres:5432/macro_datalake")
         with engine.connect() as conn:
             transformed_data.to_sql('silver_fred_cleaned',conn,if_exists='replace',index=False)
 
@@ -66,3 +69,19 @@ def silver_etl():
 
 if __name__=="__main__":
     silver_etl()
+
+with DAG(
+    dag_id="silver_transform",
+    start_date=datetime(2024, 1, 1),
+    schedule_interval=None,
+    catchup=False,
+) as dag:
+    task = PythonOperator(
+        task_id="silver_etl",
+        python_callable=silver_etl,
+    )
+    trigger_gold=TriggerDagRunOperator(
+            task_id='trigger_gold',
+            trigger_dag_id='gold_aggregate',
+        )
+    task >> trigger_gold
