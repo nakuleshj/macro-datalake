@@ -73,6 +73,7 @@ services:
       - "8080:8080"
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./requirements.txt:/requirements.txt
     command: webserver
 
   airflow-scheduler:
@@ -91,6 +92,7 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: "I2CbLa8F4s0A3mSYRngKeVhTZoPutZBNCXnHTS8ZoT0"
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./requirements.txt:/requirements.txt
     command: scheduler
 
   airflow-postgres:
@@ -104,6 +106,20 @@ services:
       - "5433:5432"
     volumes:
       - airflow_pgdata:/var/lib/postgresql/data
+  
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: macrolake-streamlit
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./streamlit-app:/app
+      - ./requirements.txt:/requirements.txt
+    depends_on:
+      - postgres
+      - minio
 
 volumes:
   postgres_data:
