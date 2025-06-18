@@ -5,13 +5,13 @@ from minio import Minio
 from minio import S3Error
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 load_dotenv()
 
 
 FRED_API_KEY=os.getenv('FRED_KEY')
-FRED_ENDPOINT=os.getenv('FRED_ENDPOINT')
+FRED_ENDPOINT='https://api.stlouisfed.org/fred/series/observations'
 
 observation_start=date.today()-timedelta(weeks=10*52) #Last 20 years
 observation_end=date.today()
@@ -79,7 +79,7 @@ if __name__=='__main__':
 
 with DAG(
     dag_id="bronze_ingest",
-    start_date=datetime(2024, 1, 1),
+    start_date=datetime(2024, 1, 1, 9),
     schedule_interval="@daily",
     catchup=False,
 ) as dag:
@@ -87,3 +87,8 @@ with DAG(
         task_id="bronze_el",
         python_callable=bronze_el,
     )
+    trigger_silver=TriggerDagRunOperator(
+            task_id='trigger_silver',
+            trigger_dag_id='silver_transform',
+        )
+    task >> trigger_silver
