@@ -1,4 +1,7 @@
-# Project Title
+# Macrolake
+
+## Problem Statement
+Economic, financial, and strategy analysts often struggle with fragmented, messy macroeconomic data when trying to track trends or assess risks. I built MacroLake to solve this; it's a streamlined data pipeline and dashboard that brings together clean, up-to-date U.S. economic indicators, forecasts, and sentiment analysis. It gives analysts a clear, real-time view of the economy without the data wrangling.
 
 ## Overview
 
