@@ -1,10 +1,31 @@
-# Macrolake
-MacroLake is a real-time U.S. economic dashboard built for financial, economic, and strategy analysts. It centralizes key indicators like GDP, inflation, and unemployment, adds forecasts and sentiment analysis, and presents everything in a clean, interactive interface—saving analysts time and delivering faster, clearer insights.
+# MacroLake – U.S. Economic Intelligence Dashboard
 
-## Problem Statement
-Economic, financial, and strategy analysts often struggle with fragmented, messy macroeconomic data when trying to track trends or assess risks. I built MacroLake to solve this; it's a streamlined data pipeline and dashboard that brings together clean, up-to-date U.S. economic indicators, forecasts, and sentiment analysis. It gives analysts a clear, real-time view of the economy without the data wrangling.
+**MacroLake** is a full-stack data engineering project built to give financial, economic, and strategy analysts a real-time view of the U.S. macroeconomy. It consolidates fragmented macroeconomic data into a unified, interactive dashboard that supports trend analysis, forecasting, and strategic decision-making.
 
-## Overview
+## 🔧 Architecture Highlights
+
+- **Data Lakehouse Design**  
+  - **MinIO**: Object storage for raw & processed data (Bronze layer)  
+  - **PostgreSQL**: Analytical serving layer (Gold layer)  
+
+- **ETL & Orchestration**  
+  - **Apache Airflow**: Scheduled ingestion from public APIs (e.g., FRED, BLS)  
+  - **Pandas/SQL**: Data cleaning, transformation, and feature engineering  
+
+- **Forecasting & Explainability**  
+  - **Prophet, XGBoost**: Time series and economic forecasts  
+  - **SHAP**: Model interpretability for feature impact  
+
+- **Sentiment Analysis**  
+  - **NLP tools (VADER/TextBlob)** on economic news and Fed speeches  
+  - Sentiment scores and word clouds by macro topics (inflation, jobs, etc.)
+
+- **Visualization**  
+  - **Streamlit**: Real-time interactive dashboard with KPIs, drill-downs, forecasts, and sentiment tracking
+
+## 🎯 Outcome
+
+MacroLake provides analysts with a centralized, explainable, and continuously updated economic intelligence platform—streamlining research workflows and enabling faster, data-driven insights.
 
 ## Architecture
 
