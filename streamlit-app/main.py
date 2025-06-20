@@ -2,61 +2,101 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from sqlalchemy import create_engine
-import os
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 from prophet import Prophet
 from prophet.plot import plot_components_plotly
-from prophet.serialize import model_from_json
 import plotly.graph_objects as go
 from sklearn.metrics import mean_absolute_percentage_error
 from pandas.tseries.holiday import USFederalHolidayCalendar as holidays
 
 
-DB_ENGINE=create_engine("postgresql+psycopg2://test-user:pass123@macrolake-postgres:5432/macro_datalake")
+DB_ENGINE = create_engine(
+    "postgresql+psycopg2://test-user:pass123@macrolake-postgres:5432/macro_datalake"
+)
+DB_ENGINE_AIRFLOW = create_engine(
+    "postgresql://airflow:airflow@airflow-postgres:5432/airflow"
+)
 
-st.set_page_config(layout="wide",page_title='MacroLake Dashboard')
+st.set_page_config(layout="wide", page_title="MacroLake Dashboard")
+
 
 @st.cache_data(ttl=600)
 def load_data():
+
     query = "SELECT * FROM gold_macro_features ORDER BY date;"
     df = pd.read_sql(query, DB_ENGINE)
-    df['date'] = pd.to_datetime(df['date'])
-    df.set_index('date',inplace=True)
+    df["date"] = pd.to_datetime(df["date"])
+    df.set_index("date", inplace=True)
+
     return df
 
+
 def train_model(SP500_data):
-    split_date= datetime.today()- timedelta(weeks=13)
+    split_date = datetime.today() - timedelta(weeks=13)
     split_date.date()
-    SP500_train= SP500_data.loc[SP500_data.index <= split_date]
+    SP500_train = SP500_data.loc[SP500_data.index <= split_date]
 
-    SP500_train_prophet=SP500_train.reset_index()
-    SP500_train_prophet.columns=['ds','y']
+    SP500_train_prophet = SP500_train.reset_index()
+    SP500_train_prophet.columns = ["ds", "y"]
     SP500_train_prophet.head()
-    hol=holidays()
+    hol = holidays()
 
-    hds=hol.holidays(
-    start=SP500_data.index.min(),
-    end=SP500_data.index.max(),
-    return_name=True
+    hds = hol.holidays(
+        start=SP500_data.index.min(), end=SP500_data.index.max(), return_name=True
     )
-    hds_df=pd.DataFrame(hds,columns=['holiday'])
-    hds_df=hds_df.reset_index().rename(columns={'index':'ds'})
-    
-    forecast_model=Prophet(holidays=hds_df)
+    hds_df = pd.DataFrame(hds, columns=["holiday"])
+    hds_df = hds_df.reset_index().rename(columns={"index": "ds"})
+
+    forecast_model = Prophet(holidays=hds_df)
     forecast_model.fit(SP500_train_prophet)
 
     return forecast_model
 
+
+def get_dag_status():
+    query = """
+    SELECT dag_id, state, execution_date, end_date, start_date
+    FROM dag_run
+    ORDER BY execution_date DESC
+    LIMIT 50
+    """
+    return pd.read_sql(query, DB_ENGINE_AIRFLOW)
+
+
+def get_task_durations():
+    query = """
+    SELECT *
+    FROM task_instance
+    """
+    return pd.read_sql(query, DB_ENGINE_AIRFLOW)
+
+
+def get_data_freshness():
+    query = """
+    SELECT table_name, MAX(updated_at) as last_updated
+    FROM data_audit
+    GROUP BY table_name
+    """
+    return pd.read_sql(query, DB_ENGINE_AIRFLOW)
+
+
 df = load_data()
 
-st.title('MacroLake Dashboard')
+st.title("MacroLake Dashboard")
 
-tab1, tab2, tab3=st.tabs(['S&P 500 Forecast Portal','Data Pipeline Status & Lineage','Data Quality & Audit Dashboard'])
+tab1, tab2, tab3 = st.tabs(
+    [
+        "S&P 500 Forecasting with Prophet",
+        "Pipeline Health Dashboard",
+        "Data Quality & Audit Dashboard",
+    ]
+)
 
 with tab1:
-    st.header('Forecasting the S&P 500 with Meta’s Prophet')
+    st.header("Forecasting the S&P 500 with Meta’s Prophet")
 
-    st.markdown("""
+    st.markdown(
+        """
     [Prophet](https://facebook.github.io/prophet/) is an open-source forecasting tool developed by Meta (formerly Facebook) for modeling **time series data with strong seasonality and trend components**. 
 
     It’s designed to handle real-world challenges such as:
@@ -78,93 +118,117 @@ with tab1:
     - **Insight into seasonal and structural market patterns**
 
     The dashboard allows for custom tuning and exploration of assumptions to simulate different market scenarios — making it a useful tool for both **analytical insight** and **strategic decision support**.
-    """)
-
-
+    """
+    )
 
     st.subheader("Forecasted S&P 500 vs Historical Data")
 
     fcst_period = st.slider(
-    "Forecast Horizon (Days)", 
-    min_value=30, max_value=360, step=30, value=90,
-    help="Select how far into the future you want to forecast the S&P 500 index."
+        "Forecast Horizon (Days)",
+        min_value=30,
+        max_value=360,
+        step=30,
+        value=90,
+        help="Select how far into the future you want to forecast the S&P 500 index.",
     )
 
     m = train_model(df["SP500"])
-    fcst_df=m.make_future_dataframe(periods=fcst_period,freq='D',include_history=False)
+    fcst_df = m.make_future_dataframe(
+        periods=fcst_period, freq="D", include_history=False
+    )
 
+    forecast = m.predict(fcst_df)
 
-    forecast=m.predict(fcst_df)
+    split_date = df["SP500"].index.max() - timedelta(days=fcst_period)
+    test_data = (
+        df.loc[df.index > split_date, "SP500"]
+        .reset_index()
+        .rename(columns={"date": "ds"})
+        .drop(columns="SP500")
+    )
 
-    split_date=df["SP500"].index.max()-timedelta(days=fcst_period)
-    test_data=df.loc[df.index>split_date,"SP500"].reset_index().rename(columns={'date':'ds'}).drop(columns='SP500')
+    test_df = m.predict(test_data)
 
-    test_df=m.predict(test_data)
+    mape = (
+        mean_absolute_percentage_error(
+            df.loc[df.index > split_date, "SP500"], test_df["yhat"]
+        )
+        * 100
+    )
+    accuracy = round(100 - mape, 2)
 
-    mape = mean_absolute_percentage_error(df.loc[df.index>split_date,"SP500"], test_df['yhat']) * 100
-    accuracy = round(100 - mape,2)
+    merged_df = pd.merge(
+        df["SP500"].reset_index().rename(columns={"SP500": "Actual", "date": "ds"}),
+        forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]],
+        how="outer",
+    )
 
-    merged_df = pd.merge(df["SP500"].reset_index().rename(columns={"SP500": "Actual","date":"ds"}), 
-                         forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]],
-                         how="outer")
-
-
-
-    current_value=merged_df["Actual"].max()
-    future_value=merged_df.loc[merged_df['ds']==merged_df["ds"].max(),"yhat"]
+    current_value = merged_df["Actual"].max()
+    future_value = merged_df.loc[merged_df["ds"] == merged_df["ds"].max(), "yhat"]
     projected_change = ((future_value.values[0] - current_value) / current_value) * 100
     trend_icon = "🔺" if projected_change > 0 else "🔻"
     trend_color = "green" if projected_change > 0 else "red"
 
     col1, col2, col3 = st.columns(3)
     col1.metric("📊 Current S&P 500", f"{current_value:,.2f}")
-    col2.metric(f"{trend_icon} {fcst_period}-Day Projected Change", 
-                f"{projected_change:.2f}%", 
-                delta_color="normal" if projected_change == 0 else "inverse")
+    col2.metric(
+        f"{trend_icon} {fcst_period}-Day Projected Change",
+        f"{projected_change:.2f}%",
+        delta_color="normal" if projected_change == 0 else "inverse",
+    )
     col3.metric("🎯 Forecast Accuracy", f"{accuracy}%")
 
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(
-        x=merged_df["ds"], y=merged_df["Actual"], 
-        mode="lines", name="Actual",
-        line=dict(color="blue")
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=merged_df["ds"],
+            y=merged_df["Actual"],
+            mode="lines",
+            name="Actual",
+            line=dict(color="blue"),
+        )
+    )
 
-    fig.add_trace(go.Scatter(
-        x=merged_df["ds"], y=merged_df["yhat"], 
-        mode="lines", name="Forecast",
-        line=dict(color="green", dash="dash")
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=merged_df["ds"],
+            y=merged_df["yhat"],
+            mode="lines",
+            name="Forecast",
+            line=dict(color="green", dash="dash"),
+        )
+    )
 
-    fig.add_trace(go.Scatter(
-        x=pd.concat([merged_df["ds"], merged_df["ds"][::-1]]),
-        y=pd.concat([merged_df["yhat_upper"], merged_df["yhat_lower"][::-1]]),
-        fill='toself',
-        fillcolor='rgba(0,255,0,0.2)',
-        line=dict(color='rgba(255,255,255,0)'),
-        hoverinfo="skip",
-        showlegend=True,
-        name="Confidence Interval"
-    ))
+    fig.add_trace(
+        go.Scatter(
+            x=pd.concat([merged_df["ds"], merged_df["ds"][::-1]]),
+            y=pd.concat([merged_df["yhat_upper"], merged_df["yhat_lower"][::-1]]),
+            fill="toself",
+            fillcolor="rgba(0,255,0,0.2)",
+            line=dict(color="rgba(255,255,255,0)"),
+            hoverinfo="skip",
+            showlegend=True,
+            name="Confidence Interval",
+        )
+    )
 
     fig.update_layout(
         title="S&P 500 Forecast with Prophet",
         xaxis_title="Date",
         yaxis_title="Index Value",
         hovermode="x unified",
-        template="plotly_white"
+        template="plotly_white",
     )
 
     st.plotly_chart(fig, use_container_width=True)
-
 
     csv = forecast.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="Export Forecast CSV",
         data=csv,
         file_name="sp500_forecast.csv",
-        mime="text/csv"
+        mime="text/csv",
     )
 
     st.subheader("Forecast Components")
@@ -186,7 +250,8 @@ with tab1:
 
     st.subheader("Takeaways")
 
-    st.markdown(f"""
+    st.markdown(
+        f"""
     **According to the current model**, the S&P 500 is expected to continue {"an **upward**" if projected_change>0 else "a **downward**"} trend over the next **{fcst_period}** days, with forecasted values showing a **{projected_change:.2f}%** change from today.
 
     This forecast can support:
@@ -194,4 +259,22 @@ with tab1:
     - **Risk Signals**: Monitoring deviations from trend that could indicate volatility or macroeconomic shifts  
     - **Strategic Planning**: Supporting treasury, allocation, or corporate strategy teams with expected market trajectories  
     - **Macro Sentiment Insight**: Interpreting underlying seasonality and event-based patterns (e.g., earnings season, Fed cycles)
-    """)
+    """
+    )
+
+
+with tab2:
+    st.title("Pipeline Health Dashboard")
+
+    st.subheader("DAG Run Status")
+    dag_df = get_dag_status()
+    st.dataframe(dag_df)
+
+    st.subheader("Task Duration & Retries")
+    task_df = get_task_durations()
+    fig = px.box(task_df, x="task_id", y="duration", color="state", points="all")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # st.subheader("Data Freshness by Table")
+    # fresh_df = get_data_freshness()
+    # st.dataframe(fresh_df)
