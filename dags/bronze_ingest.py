@@ -13,20 +13,22 @@ load_dotenv()
 
 
 FRED_API_KEY = os.getenv("FRED_KEY")
-FRED_ENDPOINT = "https://api.stlouisfed.org/fred/series/observations"
+FRED_OBS_ENDPOINT = "https://api.stlouisfed.org/fred/series/observations"
+FRED_SERIES_INFO = "https://api.stlouisfed.org/fred/series"
 
 observation_start = date.today() - timedelta(weeks=10 * 52)  # Last 20 years
 observation_end = date.today()
 
 
-def fetch_fred_data(series_id):
+def fetch_fred_data(series_id, endpoint):
     params = {
         "api_key": FRED_API_KEY,
         "file_type": "json",
         "series_id": series_id,
-        "observation_start": observation_start,
     }
-    response = requests.get(FRED_ENDPOINT, params=params)
+    if endpoint == FRED_OBS_ENDPOINT:
+        params["observation_start"] = observation_start
+    response = requests.get(endpoint, params=params)
     response.raise_for_status()
     return response.json()
 
@@ -68,7 +70,10 @@ def upload_to_minio(series_id, data):
 
 def load_to_bronze(series_list):
     for series_id in series_list:
-        response = fetch_fred_data(series_id)
+        response = fetch_fred_data(series_id, FRED_OBS_ENDPOINT)
+        info = fetch_fred_data(series_id, FRED_SERIES_INFO)
+        response["series_info"] = info["seriess"][0]
+        # print(info)
         if len(response) != 0:
             upload_to_minio(series_id=series_id, data=response)
 
