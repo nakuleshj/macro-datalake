@@ -22,27 +22,36 @@ def long_silver_to_wide_gold(cleaned_data_silver):
     pivoted_data = cleaned_data_silver.pivot_table(
         columns="series_id", values="value", index="date", aggfunc="mean"
     )
+
     pivoted_data = pivoted_data.resample("D").ffill().bfill()
 
     pivoted_data.dropna(inplace=True)
 
-    return pivoted_data
+    series_data = cleaned_data_silver[["series_id", "frequency"]]
+    series_data.drop_duplicates(
+        subset=["series_id", "frequency"], keep="first", inplace=True
+    )
+    return pivoted_data, series_data
 
 
-def load_gold_table(data):
-    t_name = "gold_wide"
-    data.to_sql(
-        t_name,
+def load_gold_table(macro_data, series_data):
+    macro_data.to_sql(
+        "gold_wide",
         con=DB_ENGINE,
         if_exists="replace",
     )
-    print(f"Wide table is in {t_name} table and ready for ML!")
+    print(f"Wide table is in the database and ready for ML!")
+    series_data.to_sql(
+        "series_data",
+        con=DB_ENGINE,
+        if_exists="replace",
+    )
 
 
 def gold_etl():
     cleaned_data_silver = extract_from_silver()
-    wide_gold_table = long_silver_to_wide_gold(cleaned_data_silver)
-    load_gold_table(wide_gold_table)
+    wide_gold_table, series_data = long_silver_to_wide_gold(cleaned_data_silver)
+    load_gold_table(wide_gold_table, series_data)
 
 
 if __name__ == "__main__":
