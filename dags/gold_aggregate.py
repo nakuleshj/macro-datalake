@@ -17,7 +17,7 @@ def extract_from_silver():
     return cleaned_data
 
 
-def pivot_table(cleaned_data_silver):
+def long_silver_to_wide_gold(cleaned_data_silver):
 
     pivoted_data = cleaned_data_silver.pivot_table(
         columns="series_id", values="value", index="date", aggfunc="mean"
@@ -30,7 +30,7 @@ def pivot_table(cleaned_data_silver):
 
 
 def load_gold_table(data):
-    t_name = "gold_macro_features"
+    t_name = "gold_wide"
     data.to_sql(
         t_name,
         con=DB_ENGINE,
@@ -41,8 +41,8 @@ def load_gold_table(data):
 
 def gold_etl():
     cleaned_data_silver = extract_from_silver()
-    wide_table = pivot_table(cleaned_data_silver)
-    load_gold_table(wide_table)
+    wide_gold_table = long_silver_to_wide_gold(cleaned_data_silver)
+    load_gold_table(wide_gold_table)
 
 
 if __name__ == "__main__":
