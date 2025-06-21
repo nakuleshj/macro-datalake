@@ -21,13 +21,20 @@ st.set_page_config(layout="wide", page_title="MacroLake Dashboard")
 
 
 @st.cache_data(ttl=600)
-def load_data():
+def load_gold_data():
+    with st.spinner("Loading economic data..."):
+        query = "SELECT * FROM gold_wide ORDER BY date;"
+        df = pd.read_sql(query, DB_ENGINE)
+        df["date"] = pd.to_datetime(df["date"])
+        df.set_index("date", inplace=True)
+    return df
 
-    query = "SELECT * FROM gold_macro_features ORDER BY date;"
-    df = pd.read_sql(query, DB_ENGINE)
-    df["date"] = pd.to_datetime(df["date"])
-    df.set_index("date", inplace=True)
 
+@st.cache_data(ttl=600)
+def load_series_meta():
+    with st.spinner("Loading economic data..."):
+        query = "SELECT * FROM series_data;"
+        df = pd.read_sql(query, DB_ENGINE)
     return df
 
 
@@ -53,46 +60,83 @@ def train_model(SP500_data):
     return forecast_model
 
 
-def get_dag_status():
-    query = """
-    SELECT dag_id, state, execution_date, end_date, start_date
-    FROM dag_run
-    ORDER BY execution_date DESC
-    LIMIT 50
-    """
-    return pd.read_sql(query, DB_ENGINE_AIRFLOW)
+def kpi_card(metric_name, current_value, delta_pct, unit="%", color="normal"):
+    if color == "positive":
+        delta_color = "green"
+    elif color == "negative":
+        delta_color = "red"
+    else:
+        delta_color = "gray"
+
+    st.metric(
+        label=metric_name,
+        value=f"{current_value:.2f}{unit}",
+        delta=f"{delta_pct:+.2f}{unit}",
+        delta_color=delta_color,
+    )
 
 
-def get_task_durations():
-    query = """
-    SELECT *
-    FROM task_instance
-    """
-    return pd.read_sql(query, DB_ENGINE_AIRFLOW)
-
-
-def get_data_freshness():
-    query = """
-    SELECT table_name, MAX(updated_at) as last_updated
-    FROM data_audit
-    GROUP BY table_name
-    """
-    return pd.read_sql(query, DB_ENGINE_AIRFLOW)
-
-
-df = load_data()
+df = load_gold_data()
 
 st.title("MacroLake Dashboard")
 
 tab1, tab2, tab3 = st.tabs(
     [
+        "Summary",
+        "Indicators",
         "S&P 500 Forecasting with Prophet",
-        "Pipeline Health Dashboard",
-        "Data Quality & Audit Dashboard",
     ]
 )
-
 with tab1:
+    st.subheader("Key Indicators")
+    df_sorted = df.sort_index()
+    ncol = len(df.columns)
+    cols = st.columns(4)
+    series_info = load_series_meta()
+    for i in range(ncol):
+        col = cols[i % 3]
+        metric = df.columns[i]
+        freq = series_info.loc[series_info["series_id"] == df.columns[i], "frequency"]
+        latest_value = df[df.columns[i]].asfreq(freq.values[0])[-1]
+        prev_value = df[df.columns[i]].asfreq(freq.values[0])[-2]
+        unit = ""
+        delta_pct = round((latest_value / prev_value - 1) * 100, 1)
+        col.metric(metric, value=f"{latest_value:,.1f}{unit}", delta=f"{delta_pct}%")
+
+    def plot_sparkline(df, title, yaxis_title):
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df.values,
+                mode="lines",
+                name=title,
+                line=dict(color="royalblue"),
+            )
+        )
+        fig.update_layout(
+            height=300,
+            title=title,
+            xaxis_title="Date",
+            yaxis_title=yaxis_title,
+            margin=dict(l=20, r=20, t=40, b=20),
+            template="plotly_white",
+        )
+        return fig
+
+    with cols[3]:
+        ind = st.selectbox("Select an indicator to plot:", options=df.columns)
+        st.plotly_chart(
+            plot_sparkline(df[ind], "Real GDP (Billions $)", "Billions"),
+            use_container_width=True,
+        )
+    st.caption("Data Source: FRED API (Federal Reserve Bank of St. Louis)")
+
+with tab2:
+    st.header("Indicators")
+
+
+with tab3:
     st.header("Forecasting the S&P 500 with Meta’s Prophet")
 
     st.markdown(
@@ -261,20 +305,3 @@ with tab1:
     - **Macro Sentiment Insight**: Interpreting underlying seasonality and event-based patterns (e.g., earnings season, Fed cycles)
     """
     )
-
-
-with tab2:
-    st.title("Pipeline Health Dashboard")
-
-    st.subheader("DAG Run Status")
-    dag_df = get_dag_status()
-    st.dataframe(dag_df)
-
-    st.subheader("Task Duration & Retries")
-    task_df = get_task_durations()
-    fig = px.box(task_df, x="task_id", y="duration", color="state", points="all")
-    st.plotly_chart(fig, use_container_width=True)
-
-    # st.subheader("Data Freshness by Table")
-    # fresh_df = get_data_freshness()
-    # st.dataframe(fresh_df)
