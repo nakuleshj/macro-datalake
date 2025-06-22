@@ -52,18 +52,18 @@ def transform(raw_data: pd.DataFrame):
     print(raw_data["series_info"])
     for i, row in raw_data.iterrows():
         obs = pd.DataFrame(row["observations"])
-        info=row["series_info"][0]
-        
+        info = row["series_info"][0]
+
         obs.drop(["realtime_end", "realtime_start"], axis=1, inplace=True)
 
         obs["series_id"] = row["series_id"]
 
         obs["date"] = pd.to_datetime(obs["date"])
-        obs["title"]=info["title"]
+        obs["title"] = info["title"]
 
-        obs["last_updated"]=info["last_updated"]
-        obs["units"]=info["units"]
-        obs["units_short"]=info["units_short"]
+        obs["last_updated"] = info["last_updated"]
+        obs["units"] = info["units"]
+        obs["units_short"] = info["units_short"]
         obs["frequency"] = info["frequency_short"]
 
         obs.loc[obs["value"] == ".", "value"] = nan
