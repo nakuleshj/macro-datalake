@@ -11,6 +11,7 @@ from sqlalchemy import create_engine
 
 
 def extract_from_bronze():
+    today = datetime.now().strftime("%Y-%m-%d")
     minio_client = Minio(
         endpoint="minio:9000",
         access_key="minioadmin",
@@ -18,7 +19,7 @@ def extract_from_bronze():
         secure=False,
     )
     bucket_name = "bronze"
-    objects = minio_client.list_objects(bucket_name, recursive=True)
+    objects = minio_client.list_objects(bucket_name, prefix=today, recursive=True)
 
     raw_data = []
 
@@ -48,17 +49,22 @@ def load_to_silver(transformed_data: pd.DataFrame):
 
 def transform(raw_data: pd.DataFrame):
     transformed_data = pd.DataFrame()
-
+    print(raw_data["series_info"])
     for i, row in raw_data.iterrows():
         obs = pd.DataFrame(row["observations"])
-
+        info=row["series_info"][0]
+        
         obs.drop(["realtime_end", "realtime_start"], axis=1, inplace=True)
 
         obs["series_id"] = row["series_id"]
 
         obs["date"] = pd.to_datetime(obs["date"])
+        obs["title"]=info["title"]
 
-        obs["frequency"] = pd.infer_freq(obs["date"])
+        obs["last_updated"]=info["last_updated"]
+        obs["units"]=info["units"]
+        obs["units_short"]=info["units_short"]
+        obs["frequency"] = info["frequency_short"]
 
         obs.loc[obs["value"] == ".", "value"] = nan
         obs["value"] = obs["value"].astype(float).round(2)
