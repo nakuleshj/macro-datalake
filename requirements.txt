@@ -25,3 +25,4 @@ streamlit
 plotly
 prophet
 scikit-learn
+seaborn
