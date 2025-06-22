@@ -125,20 +125,42 @@ with tab1:
         return fig
 
     with cols[3]:
-        ind = st.selectbox("Select an indicator to plot:", options=df.columns)
+        ind_tab1 = st.selectbox("Select an indicator to plot:", options=df.columns)
         st.plotly_chart(
-            plot_sparkline(df[ind], "Real GDP (Billions $)", "Billions"),
+            plot_sparkline(df[ind_tab1], "Real GDP (Billions $)", "Billions"),
             use_container_width=True,
         )
     st.caption("Data Source: FRED API (Federal Reserve Bank of St. Louis)")
 
 with tab2:
-    st.header("Indicators")
+    st.header("Economic Indicators Explorer")
+    st.write("Explore time series of key macroeconomic indicators using official FRED data.")
+    ind_tab2 = st.selectbox("Select an Indicator", df.columns)
+    start_date = st.date_input("Start Date", datetime(2015, 1, 1))
+
+    st.subheader("Latest Statistics")
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Latest Value", f"{50:.2f}")
+    with col2:
+        #mom = latest['value'] - prev_month['value']
+        st.metric("MoM Change", f"{5:+.2f}")
+    with col3:
+        if not False:
+            #yoy = latest['value'] - prev_year['value'].values[0]
+            st.metric("YoY Change", f"{10:+.2f}%")
+        else:
+            st.metric("YoY Change", "N/A")
+
+    st.caption("Data Source: FRED (Federal Reserve Economic Data)")
+
+
 
 
 with tab3:
     st.header("Forecasting the S&P 500 with Meta’s Prophet")
-
+    
     st.markdown(
         """
     [Prophet](https://facebook.github.io/prophet/) is an open-source forecasting tool developed by Meta (formerly Facebook) for modeling **time series data with strong seasonality and trend components**. 
