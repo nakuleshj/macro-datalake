@@ -72,7 +72,7 @@ def load_to_bronze(series_list):
     for series_id in series_list:
         response = fetch_fred_data(series_id, FRED_OBS_ENDPOINT)
         info = fetch_fred_data(series_id, FRED_SERIES_INFO)
-        response["series_info"] = info["seriess"][0]
+        response["series_info"] = info["seriess"]
         # print(info)
         if len(response) != 0:
             upload_to_minio(series_id=series_id, data=response)
