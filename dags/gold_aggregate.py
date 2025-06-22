@@ -18,8 +18,8 @@ def extract_from_silver():
 
 
 def long_silver_to_wide_gold(cleaned_data_silver):
-
-    pivoted_data = cleaned_data_silver.pivot_table(
+    info_cols=["series_id", "title","last_updated","units","units_short","frequency"]
+    pivoted_data = cleaned_data_silver.drop(columns=info_cols[1:]).pivot_table(
         columns="series_id", values="value", index="date", aggfunc="mean"
     )
 
@@ -27,24 +27,26 @@ def long_silver_to_wide_gold(cleaned_data_silver):
 
     pivoted_data.dropna(inplace=True)
 
-    series_data = cleaned_data_silver[["series_id", "frequency"]]
+
+    series_data = cleaned_data_silver[info_cols]
     series_data.drop_duplicates(
-        subset=["series_id", "frequency"], keep="first", inplace=True
+        subset=info_cols, keep="first", inplace=True
     )
     return pivoted_data, series_data
 
 
 def load_gold_table(macro_data, series_data):
     macro_data.to_sql(
-        "gold_wide",
+        "fact_gold_wide",
         con=DB_ENGINE,
         if_exists="replace",
     )
     print(f"Wide table is in the database and ready for ML!")
     series_data.to_sql(
-        "series_data",
+        "dim_series_info",
         con=DB_ENGINE,
         if_exists="replace",
+        index=False
     )
 
 
