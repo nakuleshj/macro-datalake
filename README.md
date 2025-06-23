@@ -26,7 +26,52 @@
 ## Architecture
 ![alt text](https://github.com/nakuleshj/macro-datalake/blob/master/assets/Architecture_updated.png)
 
+### Overview
 
+This project implements a **modern, production-grade data pipeline** using the **Medallion architecture** with **Apache Airflow orchestration**, **MinIO as a data lake**, **PostgreSQL as the data warehouse**, and **Streamlit for interactive BI**.
+
+### Data Source
+**FRED (Federal Reserve Economic Data) API**: Fetches macroeconomic data (e.g., GDP, inflation, unemployment).
+
+### Bronze Layer
+- **MinIO**: Stores raw JSON/CSV from FRED.
+- Acts as a Data Lake bucket.
+- Data is not cleaned—pure dump from source.
+
+### Silver Layer
+- **PostgreSQL**: Loads cleaned & formatted data from Bronze.
+- Data is parsed, type-corrected, deduplicated.
+- Used for analytics or further transformations.
+
+### Gold Layer
+- **PostgreSQL**: Stores normalized, pivoted, and business-friendly datasets.
+- Structured for efficient querying by analysts, ML pipelines, and dashboards.
+
+### ML & BI Layer
+**Streamlit**: Frontend dashboard that consumes data from the Gold Layer for ML & BI applications.
+Enables:
+- EDA (Exploratory Data Analysis)
+- Time series forecasting & visualizations
+
+### Orchestration Layer (Apache Airflow DAGs)
+1. `bronze_ingest_DAG`
+  - Runs daily
+  - Fetches data from FRED API
+  - Saves it to MinIO (Bronze)
+  - Triggers silver_transform_DAG
+2. `silver_transform_DAG`
+  - Reads from MinIO
+  - Cleans and transforms the data
+  - Writes to PostgreSQL (Silver)
+  - Triggers gold_optimize_DAG
+3. `gold_optimize_DAG`
+  - Reads Silver data
+  - Normalizes, pivots, aggregates
+  - Writes to PostgreSQL (Gold)
+  - Triggers export_gold_data_DAG
+4. `export_gold_data_DAG`
+  - Exports final tables for consumption
+  - Streamlit connects to this layer
 
 ## Prerequisites
 - [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
@@ -34,17 +79,10 @@
 
 ## How to Run
 
-
-## Sample Output / Dashboard
-
-
-
 ## Deployment
 
 ## Screenshots
 
 ## Future Improvements
-
-## Author & Credits
 
 ## License
