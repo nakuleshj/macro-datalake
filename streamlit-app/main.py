@@ -8,7 +8,8 @@ from prophet.plot import plot_components_plotly
 import plotly.graph_objects as go
 from sklearn.metrics import mean_absolute_percentage_error
 from pandas.tseries.holiday import USFederalHolidayCalendar as holidays
-
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 DB_ENGINE = create_engine(
     "postgresql+psycopg2://test-user:pass123@macrolake-postgres:5432/macro_datalake"
@@ -23,7 +24,7 @@ st.set_page_config(layout="wide", page_title="MacroLake Dashboard")
 @st.cache_data(ttl=600)
 def load_gold_data():
     with st.spinner("Loading economic data..."):
-        query = "SELECT * FROM gold_wide ORDER BY date;"
+        query = "SELECT * FROM fact_gold_wide ORDER BY date;"
         df = pd.read_sql(query, DB_ENGINE)
         df["date"] = pd.to_datetime(df["date"])
         df.set_index("date", inplace=True)
@@ -31,21 +32,17 @@ def load_gold_data():
 
 
 @st.cache_data(ttl=600)
-def load_series_meta():
+def load_series_info():
     with st.spinner("Loading economic data..."):
-        query = "SELECT * FROM series_data;"
+        query = "SELECT * FROM dim_series_info;"
         df = pd.read_sql(query, DB_ENGINE)
     return df
 
 
 def train_model(SP500_data):
-    split_date = datetime.today() - timedelta(weeks=13)
-    split_date.date()
-    SP500_train = SP500_data.loc[SP500_data.index <= split_date]
-
-    SP500_train_prophet = SP500_train.reset_index()
+    SP500_train_prophet = SP500_data.reset_index()
     SP500_train_prophet.columns = ["ds", "y"]
-    SP500_train_prophet.head()
+
     hol = holidays()
 
     hds = hol.holidays(
@@ -83,7 +80,7 @@ st.title("MacroLake Dashboard")
 tab1, tab2, tab3 = st.tabs(
     [
         "Summary",
-        "Indicators",
+        "Data Overview",
         "S&P 500 Forecasting with Prophet",
     ]
 )
@@ -91,17 +88,21 @@ with tab1:
     st.subheader("Key Indicators")
     df_sorted = df.sort_index()
     ncol = len(df.columns)
-    cols = st.columns(4)
-    series_info = load_series_meta()
+    cols = st.columns(3)
+    series_info = load_series_info()
     for i in range(ncol):
         col = cols[i % 3]
         metric = df.columns[i]
         freq = series_info.loc[series_info["series_id"] == df.columns[i], "frequency"]
-        latest_value = df[df.columns[i]].asfreq(freq.values[0])[-1]
-        prev_value = df[df.columns[i]].asfreq(freq.values[0])[-2]
+        latest_value = df[df.columns[i]].dropna().asfreq(freq.values[0])[-1]
+        prev_value = df[df.columns[i]].dropna().asfreq(freq.values[0])[-2]
         unit = ""
         delta_pct = round((latest_value / prev_value - 1) * 100, 1)
-        col.metric(metric, value=f"{latest_value:,.1f}{unit}", delta=f"{delta_pct}%")
+        col.metric(
+            metric,
+            value=f"{latest_value:,.1f}{unit}",
+            delta=f"{delta_pct}% {freq.values[0]}o{freq.values[0]}",
+        )
 
     def plot_sparkline(df, title, yaxis_title):
         fig = go.Figure()
@@ -124,43 +125,65 @@ with tab1:
         )
         return fig
 
-    with cols[3]:
-        ind_tab1 = st.selectbox("Select an indicator to plot:", options=df.columns)
-        st.plotly_chart(
-            plot_sparkline(df[ind_tab1], "Real GDP (Billions $)", "Billions"),
+    st.subheader("Time-Series Plots")
+    ind_select = st.multiselect(
+        "Select indicators to plot",
+        series_info["series_id"],
+        default=["CPIAUCSL", "GDPC1", "UNRATE", "FEDFUNDS"],
+    )
+    ind_cols = st.columns(2)
+    for i in range(len(ind_select)):
+        col = ind_cols[i % 2]
+        col.plotly_chart(
+            plot_sparkline(
+                df[ind_select[i]],
+                f"{series_info.loc[series_info['series_id']==ind_select[i],'title'].values[0]} ({series_info.loc[series_info['series_id']==ind_select[i],'series_id'].values[0]})",
+                series_info.loc[
+                    series_info["series_id"] == ind_select[i], "units_short"
+                ].values[0],
+            ),
             use_container_width=True,
         )
     st.caption("Data Source: FRED API (Federal Reserve Bank of St. Louis)")
 
 with tab2:
-    st.header("Economic Indicators Explorer")
-    st.write("Explore time series of key macroeconomic indicators using official FRED data.")
-    ind_tab2 = st.selectbox("Select an Indicator", df.columns)
-    start_date = st.date_input("Start Date", datetime(2015, 1, 1))
+    st.subheader("Data Overview")
 
-    st.subheader("Latest Statistics")
-    col1, col2, col3 = st.columns(3)
+    st.write(
+        "Explore the full dataset from the Gold Layer. This tab helps validate the data quality and perform high-level statistical review."
+    )
+    st.write(f"**Shape:** {df.shape[0]:,} rows × {df.shape[1]:,} columns")
+    selected_columns = st.multiselect(
+        "Select columns to display", options=df.columns, default=df.columns
+    )
 
-    with col1:
-        st.metric("Latest Value", f"{50:.2f}")
-    with col2:
-        #mom = latest['value'] - prev_month['value']
-        st.metric("MoM Change", f"{5:+.2f}")
-    with col3:
-        if not False:
-            #yoy = latest['value'] - prev_year['value'].values[0]
-            st.metric("YoY Change", f"{10:+.2f}%")
-        else:
-            st.metric("YoY Change", "N/A")
+    st.dataframe(df[selected_columns].round(2).sort_index(ascending=False))
 
+    st.subheader("Column Summary Statistics")
+    stats_df = df.describe(include="all").T
+    stats_df["missing (%)"] = df.isnull().sum() / len(df) * 100
+    st.dataframe(
+        stats_df[["count", "mean", "std", "min", "50%", "max", "missing (%)"]].round(2)
+    )
+    st.download_button(
+        label="Download Full Dataset (CSV)",
+        data=df.to_csv().encode("utf-8"),
+        file_name="gold_layer_data.csv",
+        mime="text/csv",
+    )
+
+    st.subheader("Missing Data Heatmap")
+    fig, ax = plt.subplots(figsize=(12, 0.4 * len(df.columns)))
+    sns.heatmap(df.isnull().T, cmap="Reds", cbar=False, ax=ax)
+    ax.set_ylabel("Features")
+    ax.set_xlabel("Time")
+    st.pyplot(fig)
     st.caption("Data Source: FRED (Federal Reserve Economic Data)")
 
 
-
-
 with tab3:
-    st.header("Forecasting the S&P 500 with Meta’s Prophet")
-    
+    st.subheader("Forecasting the S&P 500 with Meta’s Prophet")
+
     st.markdown(
         """
     [Prophet](https://facebook.github.io/prophet/) is an open-source forecasting tool developed by Meta (formerly Facebook) for modeling **time series data with strong seasonality and trend components**. 
@@ -199,8 +222,9 @@ with tab3:
     )
 
     m = train_model(df["SP500"])
+
     fcst_df = m.make_future_dataframe(
-        periods=fcst_period, freq="D", include_history=False
+        periods=fcst_period, freq="D", include_history=True
     )
 
     forecast = m.predict(fcst_df)
@@ -228,10 +252,11 @@ with tab3:
         forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]],
         how="outer",
     )
-
-    current_value = merged_df["Actual"].max()
-    future_value = merged_df.loc[merged_df["ds"] == merged_df["ds"].max(), "yhat"]
-    projected_change = ((future_value.values[0] - current_value) / current_value) * 100
+    current_value = df["SP500"].iloc[-1]
+    future_value = merged_df.loc[
+        merged_df["ds"] == merged_df["ds"].max(), "yhat"
+    ].values[0]
+    projected_change = ((future_value - current_value) / current_value) * 100
     trend_icon = "🔺" if projected_change > 0 else "🔻"
     trend_color = "green" if projected_change > 0 else "red"
 
