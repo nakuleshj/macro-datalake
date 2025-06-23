@@ -7,20 +7,17 @@
 
 ## Tech Stack
 
-**Data Ingestion & Orchestration**  
+**ETL & Orchestration**  
 - **Apache Airflow** – DAG-based orchestration for scheduled ETL pipelines  
-- **Python** – Data processing, forecasting, and backend logic  
-- **Public APIs** – FRED, BLS, NewsAPI for real-time macroeconomic and sentiment data  
+- **Pandas** – Extract, transform, and load logic
+- **Public API** – FRED for real-time macroeconomic data  
 
 **Storage & Architecture**  
 - **MinIO** – Object storage for raw and processed datasets (Data Lake – Bronze layer)  
 - **PostgreSQL** – Analytical database for cleaned, queryable data (Serving – Gold layer)  
 
-**Machine Learning**  
-- **Prophet** – Time series forecasting (S&P 500)  
-
-**NLP & Sentiment Analysis**  
-- **VADER/TextBlob** – Rule-based sentiment scoring of economic news and Fed speeches  
+**Time Series Forecasting**  
+- **Prophet** – Forecasting the S&P 500 index value    
 
 **Visualization & Interface**  
 - **Streamlit** – Real-time dashboard with KPI cards, forecast visualizations, and multivariate exploration  
@@ -29,7 +26,9 @@
 - **Docker** – Containerized pipeline and app components  
 - **Docker Compose** – Local multi-service orchestration  
 
-## Setup Instructions
+## Prerequisites
+- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
+- [Docker](https://www.docker.com/get-started/)
 
 ## How to Run
 
