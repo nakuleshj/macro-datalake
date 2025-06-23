@@ -2,9 +2,6 @@
 
 **MacroLake** is a full-stack data engineering project built to give financial, economic, and strategy analysts a real-time view of the U.S. macroeconomy. It consolidates fragmented macroeconomic data into a unified, interactive dashboard that supports trend analysis, forecasting, and strategic decision-making.
 
-## Architecture
-![alt text](https://github.com/nakuleshj/macro-datalake/blob/master/assets/Architecture_updated.png)
-
 ## Tech Stack
 
 **ETL & Orchestration**  
@@ -24,7 +21,12 @@
 
 **Containerization & Deployment**  
 - **Docker** – Containerized pipeline and app components  
-- **Docker Compose** – Local multi-service orchestration  
+- **Docker Compose** – Local multi-service orchestration
+
+## Architecture
+![alt text](https://github.com/nakuleshj/macro-datalake/blob/master/assets/Architecture_updated.png)
+
+
 
 ## Prerequisites
 - [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
