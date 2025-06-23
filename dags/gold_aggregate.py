@@ -32,7 +32,7 @@ def long_silver_to_wide_gold(cleaned_data_silver):
 
     pivoted_data = pivoted_data.resample("D").ffill().bfill()
 
-    #pivoted_data.dropna(inplace=True)
+    # pivoted_data.dropna(inplace=True)
 
     series_data = cleaned_data_silver[info_cols]
     series_data.drop_duplicates(subset=info_cols, keep="first", inplace=True)
