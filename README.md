@@ -50,6 +50,7 @@ This project implements a **modern, production-grade data pipeline** using the *
 ### ML & BI Layer
 **Streamlit**: Frontend dashboard that consumes data from the Gold Layer for ML & BI applications.
 Enables:
+- Summarizing Data
 - EDA (Exploratory Data Analysis)
 - Time series forecasting & visualizations
 
