@@ -24,7 +24,7 @@ st.set_page_config(layout="wide", page_title="MacroLake Dashboard")
 @st.cache_data(ttl=600)
 def load_gold_data():
     with st.spinner("Loading economic data..."):
-        df = pd.read_csv('./data/fact_gold_wide.csv')
+        df = pd.read_csv('https://github.com/nakuleshj/macro-datalake/blob/master/streamlit-app/data/fact_gold_wide.csv')
         df["date"] = pd.to_datetime(df["date"])
         df.set_index("date", inplace=True)
     return df
@@ -33,7 +33,7 @@ def load_gold_data():
 @st.cache_data(ttl=600)
 def load_series_info():
     with st.spinner("Loading economic data..."):
-        df = pd.read_csv('./data/dim_series_info.csv')
+        df = pd.read_csv('https://github.com/nakuleshj/macro-datalake/blob/master/streamlit-app/data/dim_series_info.csv')
 
     return df
 
