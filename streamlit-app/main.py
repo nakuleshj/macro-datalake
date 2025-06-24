@@ -11,20 +11,15 @@ from pandas.tseries.holiday import USFederalHolidayCalendar as holidays
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-DB_ENGINE = create_engine(
-    "postgresql+psycopg2://test-user:pass123@macrolake-postgres:5432/macro_datalake"
-)
-DB_ENGINE_AIRFLOW = create_engine(
-    "postgresql://airflow:airflow@airflow-postgres:5432/airflow"
-)
-
 st.set_page_config(layout="wide", page_title="MacroLake Dashboard")
 
+DIM_SERIES_CSV_URL="https://raw.githubusercontent.com/nakuleshj/macro-datalake/refs/heads/master/streamlit-app/data/dim_series_info.csv"
+FACT_GOLD_WIDE_CSV_URL="https://raw.githubusercontent.com/nakuleshj/macro-datalake/refs/heads/master/streamlit-app/data/fact_gold_wide.csv"
 
 @st.cache_data(ttl=600)
 def load_gold_data():
     with st.spinner("Loading economic data..."):
-        df = pd.read_csv('https://github.com/nakuleshj/macro-datalake/blob/master/streamlit-app/data/fact_gold_wide.csv')
+        df = pd.read_csv(FACT_GOLD_WIDE_CSV_URL)
         df["date"] = pd.to_datetime(df["date"])
         df.set_index("date", inplace=True)
     return df
@@ -33,7 +28,7 @@ def load_gold_data():
 @st.cache_data(ttl=600)
 def load_series_info():
     with st.spinner("Loading economic data..."):
-        df = pd.read_csv('https://github.com/nakuleshj/macro-datalake/blob/master/streamlit-app/data/dim_series_info.csv')
+        df = pd.read_csv(DIM_SERIES_CSV_URL)
 
     return df
 
