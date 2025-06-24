@@ -1,0 +1,12 @@
+,series_id,title,last_updated,units,units_short,frequency
+0,CPIAUCSL,Consumer Price Index for All Urban Consumers: All Items in U.S. City Average,2025-06-11 07:41:40-05,Index 1982-1984=100,Index 1982-1984=100,M
+1,FEDFUNDS,Federal Funds Effective Rate,2025-06-02 15:17:24-05,Percent,%,M
+2,DTWEXBGS,Nominal Broad U.S. Dollar Index,2025-06-23 15:20:05-05,Index Jan 2006=100,Index Jan 2006=100,D
+3,GDPC1,Real Gross Domestic Product,2025-05-29 07:56:37-05,Billions of Chained 2017 Dollars,Bil. of Chn. 2017 $,Q
+4,M2SL,M2,2025-05-27 12:01:54-05,Billions of Dollars,Bil. of $,M
+5,INDPRO,Industrial Production: Total Index,2025-06-17 08:27:56-05,Index 2017=100,Index 2017=100,M
+6,PAYEMS,"All Employees, Total Nonfarm",2025-06-06 07:49:06-05,Thousands of Persons,Thous. of Persons,M
+7,SP500,S&P 500,2025-06-23 19:02:02-05,Index,Index,D
+8,UMCSENT,University of Michigan: Consumer Sentiment,2025-05-30 10:01:05-05,Index 1966:Q1=100,Index 1966:Q1=100,M
+9,UNRATE,Unemployment Rate,2025-06-06 07:46:05-05,Percent,%,M
+10,VIXCLS,CBOE Volatility Index: VIX,2025-06-23 08:37:19-05,Index,Index,D
