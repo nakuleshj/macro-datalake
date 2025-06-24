@@ -3,3 +3,5 @@
 minio-data/
 
 ml/
+
+venv/
