@@ -104,7 +104,7 @@ with DAG(
     schedule_interval="@daily",
     catchup=False,
 ) as dag:
-    task = PythonOperator(
+    bronze_el_task = PythonOperator(
         task_id="bronze_el",
         python_callable=bronze_el,
     )
@@ -112,4 +112,4 @@ with DAG(
         task_id="trigger_silver",
         trigger_dag_id="silver_transform",
     )
-    task >> trigger_silver
+    bronze_el_task >> trigger_silver

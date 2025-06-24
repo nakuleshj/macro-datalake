@@ -61,13 +61,13 @@ if __name__ == "__main__":
     gold_etl()
 
 with DAG(
-    dag_id="gold_aggregate",
+    dag_id="gold_optimize",
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,
     catchup=False,
 ) as dag:
-    task = PythonOperator(
+    gold_etl_task = PythonOperator(
         task_id="gold_etl",
         python_callable=gold_etl,
     )
-    task
+    gold_etl_task

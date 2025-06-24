@@ -96,6 +96,6 @@ with DAG(
     )
     trigger_gold = TriggerDagRunOperator(
         task_id="trigger_gold",
-        trigger_dag_id="gold_aggregate",
+        trigger_dag_id="gold_optimize",
     )
     task >> trigger_gold
